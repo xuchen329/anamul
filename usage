@@ -5,7 +5,8 @@ MG fit, FFT fit, Detector response fit for SiPM spes and DCR
 
 Programs and usage
 ==================
-. is anamul folder
+. is anamul folder, 
+to use the python script, python-numpy(1.6.1), python-scipy(0.9.0), python-matplotlib(1.1.1) must be installed. 
 
 ./bin/getfit <DIR> <n-file>
     <DIR> is the folder contains spes-[i].root and spes-[i]-dcr.root files
