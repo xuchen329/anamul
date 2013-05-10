@@ -17,8 +17,8 @@ usage: getfitsingle <DIR> <filename> [ped] [gain] [npks]
 
 <<SiPMSpesFit.py>>: use predefined parameters do detector response fit on spes-<i>.root files. <spes.log> file must exist in the folder. All output parameters are written in <DIR>/pyspes.log, all fitted histograms are in <DIR>out.pdf 
 
-usage: ./SiPMSpesFit.py <DIR> (don't finish with '/' in <DIR>)
+usage: ./SiPMSpesFit.py <DIR>
 
 <<SiPMPlot.py>>: plot the results, command out the functions in the file
 
-usage: ./SiPMPlot.py <DIR> (don't finish with '/' in <DIR>)
+usage: ./SiPMPlot.py <DIR>

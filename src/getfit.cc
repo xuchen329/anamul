@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <TString.h>
@@ -9,10 +10,11 @@
 
 using namespace std;
 
-//do multiple gaussian(MG) fit and FFT on spes histograms to calculate SiPM gain in qdcch
+//do multiple gaussian(MG) fit and FFT on spes histograms, get gain in qdcch
 //calculate dcr from spes-<i>-dcr.root file
 //log results in <dir>/spes.log
 //!!! magic number in GetDCR, effective gate
+const Float_t dcreffgate = 100e-9;
 
 Int_t fitandlog(TString dir, TString fname,Bool_t log){ 
     TString filefullname = dir+fname;
@@ -30,10 +32,9 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     TH1I* hist = new TH1I("spes","spes in qdc channel",4096,1,4096);
     spes->GetHistogram(hist);
     Float_t *cond = new Float_t[3];
-    spes->GetCondition(cond);
-    
+    spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
-    //Multi gaussian fit
+//Multi gaussian fit
     const int cnt = FitGainLog(hist,5,mean,sigma);
     Float_t *GainMG = NULL;
     Bool_t mgfitfail = 0;
@@ -44,20 +45,21 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 	    cout<<"Mean["<<i<<"]: +"<<mean[i]-mean[i-1]<<endl;
 	    GainMG[i-1] = mean[i]-mean[i-1];
 	}
-	cout<<"Gain from MG :"<<TMath::Mean(cnt-1,GainMG)<<" +/- "<<TMath::RMS(cnt-1,GainMG)<<endl;
+	cout<<"Gain from MG :"<<TMath::Mean(cnt-1,GainMG)
+	    <<" +/- "<<TMath::RMS(cnt-1,GainMG)<<endl;
     }
     else{
 	cout<<fname<<" MG fit failed"<<endl;
 	mgfitfail=1;
     }
-    
-    //FFT fit
+
+//FFT fit
     Float_t *GainFFT = NULL;
     GainFFT = GainFromFFT(hist);
     cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;
 
-    //DCR
-    TString dcrfname = filefullname.Remove(filefullname.Sizeof()-6); //remove .root from name
+//DCR
+    TString dcrfname = filefullname.Remove(filefullname.Sizeof()-6);//remove .root from name
     dcrfname+="-dcr.root";
     TFile *fin2 = new TFile(dcrfname,"read");
     Float_t *DCRret = NULL;
@@ -66,38 +68,54 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 	DaqMul *spes2 = new DaqMul(tree2);
 	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,1,4096);
 	spes2->GetHistogram(histdcr);
-	DCRret = GetDCR(histdcr,mean[0],(mean[1]-mean[0]),100e-9);  //magic number effective gate
+	DCRret = GetDCR(histdcr,mean[0],(mean[1]-mean[0]),dcreffgate);//magic number effective gate
 	delete histdcr;
     }
-    
-    
+
+//record everthing in log file
     if(log){
 	TString logfilename = dir;
 	logfilename+="spes.log";
 	std::ofstream fout(logfilename.Data(),std::ofstream::app);
 	if(fout.tellp()<5){
 	    fout<<"#";
-	    fout<<"voltage temperature pedestal noise GainMG Pxlnoise errGainMG GainFFT errGainFFT DCR errDCR XT errXT"<<endl;
+	    fout<<"Vop[V]\tT[C]\t0pe\tnoise\tGainMG\tPex\terrMG\tGainFFT\terrFFT\tDCR\terrDCR\tXT\terrXT"<<endl;
 	}
-	fout<<cond[2]<<"\t"<<cond[0]<<"\t"; //!! voltage temperature
+	fout<<setprecision(2)<<std::fixed;
+	fout<<cond[2]<<"\t";  //voltage
+	fout<<setprecision(1)<<std::fixed;
+	fout<<cond[0]<<"\t"; //temperature
 	if(cnt>1){
-	    fout<<mean[0]<<"\t"<<sigma[0]<<"\t"; //!! pedestal noise
-	    fout<<TMath::Mean(cnt-1,GainMG)<<"\t"<<sigma[1]<<"\t"<<TMath::RMS(cnt-1,GainMG)<<"\t"; //!! GainMG pixelnoise errGainMG
+	    fout<<mean[0]<<"\t"   //pedestal 
+		<<sigma[0]<<"\t"; //noise
+	    Float_t pxnoise = TMath::Sqrt(sigma[1]*sigma[1]-sigma[0]*sigma[0]);
+	    fout<<TMath::Mean(cnt-1,GainMG)<<"\t" //GainMG 
+		<<pxnoise<<"\t"                   //pixel noise
+		<<TMath::RMS(cnt-1,GainMG)<<"\t"; //errGainMG
 	}
 	else{ //MG failed
 	    fout<<"0\t0\t0\t0\t0\t";
 	}
-	fout<<GainFFT[0]<<"\t"<<GainFFT[1];//!! GainFFT errGainFFT
-	if(DCRret==NULL) fout<<"\t0\t0\t0\t0\t"<<fname.Data()<<"\n";
-	else {
-	    fout<<"\t";
-	    fout<<DCRret[0]<<"\t"<<DCRret[1]<<"\t";//!!DCR errDCR
-	    fout<<DCRret[2]<<"\t"<<DCRret[3]<<"\t"<<fname.Data()<<"\n";//!!xt errxt
+	fout<<GainFFT[0]<<"\t"   //GainFFT
+	    <<GainFFT[1]<<"\t";  //errGainFFT
+	if(DCRret==NULL){        //noDCR
+	    fout<<setprecision(0)<<std::fixed;
+	    fout<<"0\t0\t";
+	    fout<<setprecision(3)<<std::fixed;
+	    fout<<"0\t0\t";
 	}
+	else {
+	    fout<<setprecision(0)<<std::fixed;
+	    fout<<DCRret[0]<<"\t"   //DCR
+		<<DCRret[1]<<"\t";  //errDCR
+	    fout<<setprecision(3)<<std::fixed;
+	    fout<<DCRret[2]<<"\t"  //XT
+		<<DCRret[3]<<"\t"; //errXT
+	}
+	fout<<fname.Data()<<"\n";
 	fout.close();
     }
     return 0;
-    //hist->Draw();
 }
 
 Int_t main(int argc, char** argv){

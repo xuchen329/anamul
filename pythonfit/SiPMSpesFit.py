@@ -115,6 +115,8 @@ def DoFitReturnPlot(fitpars,filepath,pdffile=None):
 
 if __name__=='__main__':
     dirpath = sys.argv[1]
+    if dirpath[-1]=='/':
+        dirpath = dirpath[0:-1]
     tmppath, tmpfolder, files = os.walk(dirpath).next()
     pp = PdfPages(tmppath+'/out.pdf')
     for fname in files:
