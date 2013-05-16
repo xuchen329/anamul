@@ -238,7 +238,7 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
     //fit pedestal
     TString str = "g";
     str+=pkcnt;
-    gfittmp = new TF1(str,"gaus",0.8*kped,1.2*kped);
+    gfittmp = new TF1(str,"gaus",0.9*kped,1.1*kped);
     hist->Fit(gfittmp,"QR");
     Float_t tmpmean = gfittmp->GetParameter(1);
     Float_t tmpsigm = gfittmp->GetParameter(2);

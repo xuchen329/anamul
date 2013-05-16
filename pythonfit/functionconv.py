@@ -15,7 +15,7 @@ def DetectorXTF(x,*par):
 
 def DetLightResponseF(x,*par):
     mu,gain,sigma,xt = par
-    return numpy.exp(mu*DetectorXTF(x,gain,sigma,xt)-1)
+    return numpy.exp(mu*(DetectorXTF(x,gain,sigma,xt)-1))
 
 def PedGausF(x,*par):
     ped,sigma = par
