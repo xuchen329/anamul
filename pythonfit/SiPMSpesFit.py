@@ -48,7 +48,7 @@ def GetHistogramData(fname):
     return ret,thisvoltage,thishistmean,nevents
 
 def WriteParToFile(filename,par,perr):
-    headerlb = '#pedestal noise mu gain sigma crosstalk volt temp\n'
+    headerlb = '#Ped\t[+/-]\tNoise\t[+/-]\tmu\t[+/-]\tGain\t[+/-]\tPex\t[+/-]\tXT\t[+/-]\tVop[V]\tT[C]\n'
     savefmt = ['{:.1f}','{:.1f}','{:.2f}','{:.1f}','{:.1f}','{:.3f}','{:.2f}','{:.1f}']
     if not os.path.isfile(filename):
         f = open(filename,'w')
