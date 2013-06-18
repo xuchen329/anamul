@@ -1,10 +1,13 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <math.h>
 #include <TString.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1I.h>
+#include <TMath.h>
+#include <TGraphErrors.h>
 #include "DaqMul.h"
 #include "ExtractGain.h"
 
@@ -28,6 +31,8 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 
     Float_t *mean = new Float_t[20];
     Float_t *sigma = new Float_t[20];
+    Float_t *errmean = new Float_t[20];
+    Float_t *errsigma = new Float_t[20];
     
     TH1I* hist = new TH1I("spes","spes in qdc channel",4096,1,4096);
     spes->GetHistogram(hist);
@@ -35,18 +40,36 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
 //Multi gaussian fit
-    const int cnt = FitGainLog(hist,5,mean,sigma);
-    Float_t *GainMG = NULL;
+    const int cnt = FitGainLog(hist,5,mean,sigma,errmean,errsigma);
     Bool_t mgfitfail = 0;
+    Float_t LFgain,errLFgain,el_noise,pix_noise;
     if(cnt>1){ 
-	GainMG = new Float_t [cnt-1];
-	cout<<"Mean[0]: "<<mean[0]<<endl;
-	for(int i=1;i<cnt;i++){
-	    cout<<"Mean["<<i<<"]: +"<<mean[i]-mean[i-1]<<endl;
-	    GainMG[i-1] = mean[i]-mean[i-1];
+	///
+	Float_t *pkorder = new Float_t[20];
+	for(int i=0;i<cnt;i++){
+	    pkorder[i] = i;
 	}
-	cout<<"Gain from MG :"<<TMath::Mean(cnt-1,GainMG)
-	    <<" +/- "<<TMath::RMS(cnt-1,GainMG)<<endl;
+	
+	TGraphErrors *gr = new TGraphErrors(cnt,pkorder,mean,0,errmean);
+	TF1* tmpfit = new TF1("tmpfit","pol1",0-0.1,cnt-0.9);
+	gr->Fit(tmpfit,"QR");
+	LFgain = tmpfit->GetParameter(1);
+	errLFgain = tmpfit->GetParError(1);
+	cout<<"Gain from MG: "<<LFgain<<" +/- "<<errLFgain<<endl;
+	
+	Float_t *sigmasq = new Float_t[20];
+	Float_t *errsigsq = new Float_t[20];
+	for(int i=0;i<cnt;i++){
+	    sigmasq[i] = sigma[i]*sigma[i];
+	    errsigsq[i] = TMath::Sqrt(2)*sigma[i]*errsigma[i];
+	}
+	TGraphErrors *grsigma = new TGraphErrors(cnt,pkorder,sigmasq,0,errsigsq);
+	TF1* tmpfitsigma = new TF1("tmpfitsigma","pol1",0-0.1,cnt-0.9);
+	grsigma->Fit(tmpfitsigma,"QR");
+	el_noise = TMath::Sqrt(tmpfitsigma->GetParameter(0));
+	pix_noise = TMath::Sqrt(tmpfitsigma->GetParameter(1));
+	cout<<"Electronic noise: "<<el_noise<<" Pixel noise: "<<pix_noise<<endl;
+	///
     }
     else{
 	cout<<fname<<" MG fit failed"<<endl;
@@ -86,12 +109,11 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 	fout<<setprecision(1)<<std::fixed;
 	fout<<cond[0]<<"\t"; //temperature
 	if(cnt>1){
-	    fout<<mean[0]<<"\t"   //pedestal 
-		<<sigma[0]<<"\t"; //noise
-	    Float_t pxnoise = TMath::Sqrt(sigma[1]*sigma[1]-sigma[0]*sigma[0]);
-	    fout<<TMath::Mean(cnt-1,GainMG)<<"\t" //GainMG 
-		<<pxnoise<<"\t"                   //pixel noise
-		<<TMath::RMS(cnt-1,GainMG)<<"\t"; //errGainMG
+	    fout<<mean[0]<<"\t"    //pedestal
+		<<el_noise<<"\t";  //noise
+	    fout<<LFgain<<"\t"     //GainMG 
+		<<pix_noise<<"\t"  //pixel noise
+		<<errLFgain<<"\t"; //errGainMG
 	}
 	else{ //MG failed
 	    fout<<"0\t0\t0\t0\t0\t";

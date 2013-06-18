@@ -18,7 +18,7 @@ TCanvas* NewCanvas(TString cname,Int_t x,Int_t y)
     return can;
 }
 
-Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma)
+Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean,Float_t *errsigma)
 {//return length of mean array
     //draw histogram
     /*
@@ -34,6 +34,9 @@ Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma)
     hist->GetXaxis()->SetTitle("QDC channel [adu]");
     hist->GetXaxis()->SetRangeUser(0,hist->FindLastBinAbove());
     */
+    if (errmean==0) errmean = new Float_t[20];
+    if (errsigma==0) errsigma = new Float_t[20];
+    
     TH1F* histtmp = new TH1F("tmp","tmp",4096,1,4096);
     for(int i=START;i<=4096;i++){
 	Float_t bincontent = hist->GetBinContent(i);
@@ -52,7 +55,20 @@ Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma)
     TMath::Sort(cnt,px,idx,kFALSE);
     Float_t gn =0.0;
     if(cnt>1) gn=px[idx[1]]-px[idx[0]]; //more than 1 peak found
-    else return 0;
+    //else return 0;
+    else { //only fit for pedestal
+      TF1* fitonce = new TF1("once","gaus",px[idx[0]]-8,px[idx[0]]+8);
+      hist->Fit(fitonce,"QR");
+      Float_t tmpmean = fitonce->GetParameter(1);
+      Float_t tmpsigm = fitonce->GetParameter(2);
+      Float_t tmperrmean = fitonce->GetParError(1);
+      Float_t tmperrsigm = fitonce->GetParError(2);
+      mean[0]    = tmpmean;
+      sigma[0]   = tmpsigm;
+      errmean[0] = tmperrmean;
+      errsigma[0] = tmperrsigm;
+      return 1;
+    }
     //start fits
     TF1* gfit = NULL;
     TF1* gfittmp = NULL;
@@ -77,6 +93,8 @@ Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma)
 	    hist->Fit(gfit,"QR");
 	    mean[i]      = gfit->GetParameter(1);
 	    sigma[i]     = gfit->GetParameter(2);
+	    errmean[0]   = gfit->GetParError(1);
+	    errsigma[0]  = gfit->GetParError(2);
 	    //normfctor[i] = GetHistNormFactor(hist,mean[i],sigma[i]);
 	    std::cout<<"Pedestal: "<<mean[i]<<std::endl;
 	    std::cout<<"Noise: "<<sigma[i]<<std::endl;
@@ -91,6 +109,8 @@ Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma)
 	    if(tmpmean<fitleftrange || tmpmean>fitrightrange) continue;
 	    mean[NPks] = tmpmean;
 	    sigma[NPks] = gfit->GetParameter(2);
+	    errmean[NPks]   = gfit->GetParError(1);
+	    errsigma[NPks]  = gfit->GetParError(2);
 	    NPks++;
 	    //normfctor[i] = GetHistNormFactor(hist,mean[i],sigma[i]);
 	}
@@ -216,7 +236,7 @@ Float_t* GetDCR(TH1I* hist,Float_t pedestal,Float_t gain,Float_t effgate){
     return ret;
 }
 
-Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma, Float_t kped, Float_t kgn)
+Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma, Float_t kped, Float_t kgn, Float_t *errmean, Float_t *errsigma)
 {//return length of mean array
 
     //draw histogram
@@ -230,6 +250,8 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
     hist->GetXaxis()->SetTitle("QDC channel [adu]");
     hist->GetXaxis()->SetRangeUser(0,hist->FindLastBinAbove());
     */
+    if (errmean==0) errmean = new Float_t[20];
+    if (errsigma==0) errsigma = new Float_t[20];
     //start fits
     TF1* gfit= NULL;
     TF1* gfittmp= NULL;
@@ -252,6 +274,8 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
     hist->Fit(gfit,"QR");
     mean[0] = gfit->GetParameter(1);
     sigma[0]= gfit->GetParameter(2);
+    errmean[0] = gfit->GetParError(1);
+    errsigma[0]= gfit->GetParError(2);
     std::cout<<"Pedestal: "<<mean[0]<<std::endl;
     std::cout<<"Noise: "<<sigma[0]<<std::endl;
     pkcnt++;
@@ -268,6 +292,8 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
 	if (tmpval1<fitlrange || tmpval1>fitrrange) break;
 	mean[pkcnt] = tmpval1;
 	sigma[pkcnt] = gfit->GetParameter(2);
+	errmean[pkcnt] = gfit->GetParError(1);
+	errsigma[pkcnt] = gfit->GetParError(2);
 	pkcnt++;
     }
 
@@ -276,8 +302,8 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
 	gain[i] = mean[i+1]-mean[i];
     }
     
-    std::cout<<"Mean of gain: "<<TMath::Mean(pkcnt-1,gain)<<std::endl;
-    std::cout<<"Error:        "<<TMath::RMS(pkcnt-1,gain)<<std::endl;
+    //std::cout<<"Mean of gain (Rough): "<<TMath::Mean(pkcnt-1,gain)<<std::endl;
+    //std::cout<<"Error:        "<<TMath::RMS(pkcnt-1,gain)<<std::endl;
     
    
     delete[] gain;
