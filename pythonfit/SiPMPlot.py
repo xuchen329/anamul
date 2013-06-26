@@ -107,6 +107,6 @@ def DCRvsVolt(folderdir):
 if __name__=='__main__':
     folderpath = sys.argv[1]
     
-    GainvsVolt(folderpath)
-        #XTvsVolt(folderpath)
-        #DCRvsVolt(folderpath)
+    #GainvsVolt(folderpath)
+    #XTvsVolt(folderpath)
+    DCRvsVolt(folderpath)

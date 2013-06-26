@@ -33,7 +33,7 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
     Float_t *errmean = new Float_t[20];
     Float_t *errsigma = new Float_t[20];
     
-    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,1,4096);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
     spes->GetHistogram(hist);
     Float_t *cond = new Float_t[3];
     spes->GetCondition(cond); //Temperature,errTemp,Voltage
@@ -116,7 +116,7 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
 	havedcr=1;
 	TTree *tree2 = (TTree*)fin2->Get("data");
 	DaqMul *spes2 = new DaqMul(tree2);
-	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,1,4096);
+	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,-0.5,4095.5);
 	spes2->GetHistogram(histdcr);
 	DCRret = GetDCR(histdcr,mean[0],(mean[1]-mean[0]),dcreffgate); //magic number effective gate
 	cout<<"DCR : "<<DCRret[0]<<" +/- "<<DCRret[1]<<endl;

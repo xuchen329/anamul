@@ -34,7 +34,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     Float_t *errmean = new Float_t[20];
     Float_t *errsigma = new Float_t[20];
     
-    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,1,4096);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
     spes->GetHistogram(hist);
     Float_t *cond = new Float_t[3];
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
@@ -89,7 +89,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     if(!fin2->IsZombie() && (!mgfitfail)){
 	TTree *tree2 = (TTree*)fin2->Get("data");
 	DaqMul *spes2 = new DaqMul(tree2);
-	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,1,4096);
+	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,-0.5,4095.5);
 	spes2->GetHistogram(histdcr);
 	DCRret = GetDCR(histdcr,mean[0],LFgain,dcreffgate);//magic number effective gate
 	delete histdcr;

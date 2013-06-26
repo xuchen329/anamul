@@ -114,7 +114,7 @@ public :
     virtual void     Loop();
     virtual Bool_t   Notify();
     virtual void     Show(Long64_t entry = -1);
-    virtual void     GetHistogram(TH1I* hist);
+    virtual void     GetHistogram(TH1I* hist,Int_t cut=1);
     virtual void     GetCondition(Float_t *rett);
 };
 

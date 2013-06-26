@@ -46,7 +46,7 @@ void DaqMul::Loop()
 }
 
 
-void DaqMul::GetHistogram(TH1I *hist){
+void DaqMul::GetHistogram(TH1I *hist, Int_t cut){
     if (fChain == 0) return;
     Long64_t nentries = fChain->GetEntriesFast();
     
@@ -57,7 +57,8 @@ void DaqMul::GetHistogram(TH1I *hist){
 	//nb = fChain->GetEntry(jentry);   nbytes += nb;
 	// if (Cut(ientry) < 0) continue;
 	b_qdcch->GetEntry(jentry);
-	hist->Fill(qdcch);	
+//	hist->Fill(qdcch);
+	if(qdcch>=cut) hist->Fill(qdcch);	
     }
 }
 
