@@ -13,7 +13,7 @@ def linearfunc(x,cnt,slp):
     return cnt+slp*x
 
 def GainvsVolt(folderpath):
-    filename = folderpath+'/spes-correct.log'
+    filename = folderpath+'/spes.log'
     if os.path.isfile(filename):
         voltage,temperature,GainMG,errGainMG,GainFFT,GainFFTerr = np.genfromtxt(filename,usecols=(0,1,4,6,7,8),unpack=True)
         if voltage[0]<0.:
@@ -25,8 +25,8 @@ def GainvsVolt(folderpath):
         c1 = ROOT.TCanvas("MG_fit","MG_Fit")
         c1.cd()
         mygrMG.Draw("AP")
-        #myfitMG = ROOT.TF1("myfitMG","pol1",np.min(voltage),np.max(voltage))
-        myfitMG = ROOT.TF1("myfitMG","pol1",np.min(voltage),72.02)
+        myfitMG = ROOT.TF1("myfitMG","pol1",np.min(voltage),np.max(voltage))
+        #myfitMG = ROOT.TF1("myfitMG","pol1",np.min(voltage),72.02)
         mygrMG.Fit("myfitMG","QR")
         MGpar0 = myfitMG.GetParameter(0)
         MGpar1 = myfitMG.GetParameter(1)
@@ -51,14 +51,14 @@ def GainvsVolt(folderpath):
         #myfitFFT = ROOT.TF1("myfitFFT16","pol1",71.3,71.8)
         mygrFFT.Fit("myfitFFT16","QR")
         FFTpar0 = myfitFFT.GetParameter(0)
-        FFTpar1 = myfitFFT.GetParameter(1)
+        FFTpar1 = 1.#myfitFFT.GetParameter(1)
         FFTerr0 = myfitFFT.GetParError(0)
         FFTerr1 = myfitFFT.GetParError(1)
         FFTchi = myfitFFT.GetChisquare()
         FFTdof = myfitFFT.GetNDF()
         plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,fmt='r.')
         FFT_vbd = -1.*FFTpar0/FFTpar1
-        FFT_errvbd = np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
+        FFT_errvbd = 1.#np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
         FFT_normg = FFTpar1*25e-15/50./1.6e-19
         FFT_errnormg = FFTerr1*25e-15/50./1.6e-19
         plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')

@@ -22,7 +22,8 @@ using namespace std;
 //high noise data version
 const Float_t dcreffgate = 100e-9;
 
-Int_t fitandlog(TString dir, TString fname,Bool_t log){ 
+Int_t fitandlog(TString dir, TString fname,Bool_t log, Int_t pedes){
+    Bool_t notskip = 1;
     TString filefullname = dir+fname;
     TFile *fin = new TFile(filefullname,"read");
     if(fin->IsZombie()) {
@@ -39,12 +40,12 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     
     TH1I* hist = new TH1I("spes","spes in qdc channel",4096,0.5,4096.5);
 //HIGH NOISE VERSION, cut histogram from 50
-    spes->GetHistogram(hist,50);  
+    spes->GetHistogram(hist,55);  
     Float_t *cond = new Float_t[3];
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
 //Multi gaussian fit
-    const int cnt = FitGainLog(hist,5,mean,sigma,errmean,errsigma);
+    const int cnt = FitGainLog(hist,7,mean,sigma,errmean,errsigma,pedes);
     Bool_t mgfitfail = 0;
     Float_t LFgain,errLFgain,el_noise,pix_noise;
     if(cnt>1){ 
@@ -82,8 +83,9 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 
 //FFT fit
     Float_t *GainFFT = NULL;
-    GainFFT = GainFromFFTShifted(hist,180);
+    GainFFT = GainFromFFTShifted(hist,pedes);
     cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;
+    if(GainFFT[1] > 10) notskip=0;
 
 //DCR
     TString dcrfname = filefullname.Remove(filefullname.Sizeof()-6);//remove .root from name
@@ -95,12 +97,12 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 	DaqMul *spes2 = new DaqMul(tree2);
 	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,-0.5,4095.5);
 	spes2->GetHistogram(histdcr,50);
-	DCRret = GetDCRHighNoise(histdcr,mean[0],LFgain,dcreffgate);//magic number effective gate
+	DCRret = GetDCR(histdcr,mean[0],LFgain,dcreffgate);//magic number effective gate
 	delete histdcr;
     }
 
 //record everthing in log file
-    if(log){
+    if(log && notskip){
 	TString logfilename = dir;
 	logfilename+="spes.log";
 	std::ofstream fout(logfilename.Data(),std::ofstream::app);
@@ -144,6 +146,26 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     return 0;
 }
 
+Int_t GetPedestal(TString dirname){
+    TString filefullname = dirname;
+    filefullname+="pedestal.root";
+    TFile* fin = new TFile(filefullname,"read");
+    if(fin->IsZombie()) {
+	fin->Close();
+	return 0.;
+    }
+    TTree *tree = (TTree*)fin->Get("data");
+    DaqMul *spes = new DaqMul(tree);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,0.5,4096.5);
+//HIGH NOISE VERSION, cut histogram from 10
+    spes->GetHistogram(hist,10);
+    Int_t pedes = hist->GetBinCenter(hist->GetMaximumBin());
+    cout<<"Pedestal Estimation: "<<pedes<<endl;
+    delete hist;
+    delete spes;
+    return pedes;
+}
+
 Int_t main(int argc, char** argv){
     if(argc<3){
 	cout<<"usage: ./getfit <dir> <nfile>"<<endl;
@@ -160,11 +182,12 @@ Int_t main(int argc, char** argv){
     logfilename+="spes.log";
     std::ofstream fout(logfilename,std::ofstream::out);
     fout.close();
-    
+
+    Int_t pedes = GetPedestal(dirname);
     for(int i=0;i<nfile;i++){
 	TString name = "spes-";
 	name+=i;
 	name+=".root";
-	Int_t ret = fitandlog(dirname,name,1);
+	Int_t ret = fitandlog(dirname,name,1,pedes);
     }
 }

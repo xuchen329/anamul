@@ -18,7 +18,7 @@ TCanvas* NewCanvas(TString cname,Int_t x,Int_t y)
     return can;
 }
 
-Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean,Float_t *errsigma)
+Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean,Float_t *errsigma,Int_t pedes)
 {//return length of mean array
     //draw histogram
     /*
@@ -47,8 +47,17 @@ Int_t FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *
     
     //find peaks
     TSpectrum *spec = new TSpectrum(npks);
-    const Int_t cnt = spec->Search(histtmp,SEARCHSIG,"",BACKGROUND);
+    Int_t nccnt = spec->Search(histtmp,SEARCHSIG,"",BACKGROUND);
     Float_t *px = spec->GetPositionX();
+    if(pedes>0){
+	for(int i=0;i<nccnt;i++){
+	    if(px[i]<pedes-100){
+		px[i] = 4096;
+		nccnt-=1;
+	    }
+	}
+    }
+    const Int_t cnt = nccnt;
     Int_t* idx = new Int_t[20];
     delete histtmp;
    
@@ -461,18 +470,19 @@ Int_t FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma,
     hist->Fit(gfittmp,"QR");
     Float_t tmpmean = gfittmp->GetParameter(1);
     Float_t tmpsigm = gfittmp->GetParameter(2);
-    if(tmpmean<kped*0.8 || tmpmean>kped*1.2){
+    if(tmpmean<kped-50 || tmpmean>kped+10){
 	return 0;
     }
-    delete gfittmp;
+//    delete gfittmp;
+    /*
     Float_t fitleftrange = tmpmean-1.*tmpsigm;
     Float_t fitrightrange = tmpmean+1.*tmpsigm;
     gfit = new TF1(str,"gaus",fitleftrange,fitrightrange);
-    hist->Fit(gfit,"QR");
-    mean[0] = gfit->GetParameter(1);
-    sigma[0]= gfit->GetParameter(2);
-    errmean[0] = gfit->GetParError(1);
-    errsigma[0]= gfit->GetParError(2);
+    hist->Fit(gfit,"QR");*/
+    mean[0] = gfittmp->GetParameter(1);
+    sigma[0]= gfittmp->GetParameter(2);
+    errmean[0] = gfittmp->GetParError(1);
+    errsigma[0]= gfittmp->GetParError(2);
     std::cout<<"Pedestal: "<<mean[0]<<std::endl;
     std::cout<<"Noise: "<<sigma[0]<<std::endl;
     pkcnt++;

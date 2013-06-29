@@ -139,8 +139,8 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
 	    <<LFgain<<"\t"     //GainMG
 	    <<pix_noise<<"\t"                       //pixel noise
 	    <<errLFgain<<"\t"      //GainMG error
-	    <<GainFFT[0]<<"\t"                    //GainFFT
-	    <<GainFFT[1]<<"\t";                   //GainFFT error
+	    <<GainFFTnoPed[0]<<"\t"                    //GainFFT
+	    <<GainFFTnoPed[1]<<"\t";                   //GainFFT error
 	if(havedcr){
 	    cout<<setprecision(0)<<std::fixed;
 	    cout<<DCRret[0]<<"\t"   //DCR

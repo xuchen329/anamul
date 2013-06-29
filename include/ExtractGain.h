@@ -7,7 +7,7 @@
 #include <TF1.h>
 #include <TVirtualFFT.h>
 
-Int_t    FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean=0,Float_t *errsigma=0);
+Int_t    FitGainLog(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean=0,Float_t *errsigma=0,Int_t pedes=0);
 Int_t    FitGainLogHighNoise(TH1I* hist, Int_t npks, Float_t *mean, Float_t *sigma,Float_t *errmean=0,Float_t *errsigma=0);
 Float_t* GainFromFFT(TH1I* hist);
 Float_t* GainFromFFTShifted(TH1I* hist,Float_t ped);
