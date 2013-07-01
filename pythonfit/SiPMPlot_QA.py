@@ -41,7 +41,7 @@ def GainvsVolt(folderpath):
         MGerr1 = myfitMG.GetParError(1)
         chiMG = myfitMG.GetChisquare()
         dofMG = myfitMG.GetNDF()
-        plt.errorbar(voltage[GainMG.nonzero()],GainMG[GainMG.nonzero()],xerr=voltageerr[GainMG.nonzero()],yerr=errGainMG[GainMG.nonzero()],fmt='b.')
+        plt.errorbar(voltage[GainMG.nonzero()],GainMG[GainMG.nonzero()],xerr=voltageerr[GainMG.nonzero()],yerr=errGainMG[GainMG.nonzero()],label='MGF',fmt='b.')
         vbdMG = -1.*MGpar0/MGpar1
         errvbdMG = np.sqrt(((MGerr0**2)/(MGpar0**2)+(MGerr1**2)/(MGpar1**2))*(vbdMG**2))
         normgMG = MGpar1*25e-15/50./1.6e-19
@@ -63,7 +63,7 @@ def GainvsVolt(folderpath):
         FFTerr1 = myfitFFT.GetParError(1)
         FFTchi = myfitFFT.GetChisquare()
         FFTdof = myfitFFT.GetNDF()
-        plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,fmt='r.')
+        plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,label='FFT',fmt='r.')
         FFT_vbd = -1.*FFTpar0/FFTpar1
         FFT_errvbd = np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
         FFT_normg = FFTpar1*25e-15/50./1.6e-19
@@ -79,6 +79,7 @@ def GainvsVolt(folderpath):
         plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.7),xycoords='axes fraction',fontsize=14)
          
         plt.xlim(np.min(voltage)-0.1,np.max(voltage)+0.1)
+    plt.legend(loc=4,numpoints=1)
     plt.show()
 
 if __name__=='__main__':
