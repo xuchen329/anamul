@@ -17,4 +17,4 @@
 
 # Local data
 data/
-bin/
+bin/*
