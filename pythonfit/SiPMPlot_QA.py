@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -7,8 +8,15 @@ import scipy.stats as scist
 import os,sys
 import ROOT
 
+golden_mean = (math.sqrt(5)-1.0)/2.0
+fig_width = 8 # width in inches
+fig_height = fig_width*golden_mean
+fig_size = [fig_width, fig_height]
+params = { 'font.family':'serif',
+	'figure.figsize':fig_size}
+plt.rcParams.update(params)
 rc('text',usetex=True)
-rc('font', family='serif')
+
 def linearfunc(x,cnt,slp):
     return cnt+slp*x
 
@@ -67,8 +75,8 @@ def GainvsVolt(folderpath):
         plt.xlabel('Bias Voltage [V]',fontsize=16)
         plt.ylabel('Gain [adu.]',fontsize=16)
         
-        plt.annotate("MGF\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(vbdMG,errvbdMG,normgMG/1000.,np.mean(temperature),chiMG,dofMG,errnormgMG/1000.),xy=(0.35,0.75),xycoords='axes fraction',fontsize=14)
-        plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.75),xycoords='axes fraction',fontsize=14)
+        plt.annotate("MGF\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(vbdMG,errvbdMG,normgMG/1000.,np.mean(temperature),chiMG,dofMG,errnormgMG/1000.),xy=(0.45,0.7),xycoords='axes fraction',fontsize=14)
+        plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.7),xycoords='axes fraction',fontsize=14)
          
         plt.xlim(np.min(voltage)-0.1,np.max(voltage)+0.1)
     plt.show()

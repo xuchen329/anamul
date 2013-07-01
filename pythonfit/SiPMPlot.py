@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -7,8 +8,14 @@ import scipy.stats as scist
 import os,sys
 import ROOT
 
+golden_mean = (math.sqrt(5)-1.0)/2.0
+fig_width = 8 # width in inches
+fig_height = fig_width*golden_mean
+fig_size = [fig_width, fig_height]
+params = { 'font.family':'serif',
+	'figure.figsize':fig_size}
+plt.rcParams.update(params)
 rc('text',usetex=True)
-rc('font', family='serif')
 
 def linearfunc(x,cnt,slp):
     return cnt+slp*x
@@ -95,13 +102,14 @@ def DCRvsVolt(folderdir):
     if os.path.isfile(filename):
         volt,temp,DCR,errDCR = np.genfromtxt(filename,usecols=(0,1,9,10),unpack=True)
         volt = -1.*volt
-        plt.errorbar(volt,DCR,yerr=errDCR,fmt='r.')
+        plt.errorbar(volt[DCR.nonzero()],DCR[DCR.nonzero()],yerr=errDCR[DCR.nonzero()],fmt='r.')
         plt.grid(True)
-        plt.annotate("Temp: {0:.1f}$^\circ$C".format(np.mean(temp)),xy=(0.6,0.3),xycoords='axes fraction',fontsize=16)
+        plt.annotate("Temp: {0:.1f}$^\circ$C".format(np.mean(temp)),xy=(0.1,0.6),xycoords='axes fraction',fontsize=16)
         plt.xlabel('Bias Voltage [V]',fontsize=16)
         plt.ylabel('DCR [cps]',fontsize=16)
         plt.xlim(np.min(volt)-0.1,np.max(volt)+0.1)
-        print volt-69.57
+        plt.ylim(1e5,3e6)
+        #print volt-69.57
         plt.show()
 
 if __name__=='__main__':
