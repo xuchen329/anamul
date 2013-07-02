@@ -33,7 +33,20 @@ def GainvsVolt(folderpath):
         c1 = ROOT.TCanvas("MG_fit","MG_Fit")
         c1.cd()
         mygrMG.Draw("AP")
-        myfitMG = ROOT.TF1("myfitMG","pol1",np.min(voltage),np.max(voltage))
+        stop = 0;
+        fitrg = []
+        for i in range(6):
+            for j in [1,0]:
+                myfitMG = ROOT.TF1("myfitMG","pol1",voltage[5-i],voltage[-1*(5-i+j)])
+                mygrMG.Fit(myfitMG,"QR")
+                chiMG = myfitMG.GetChisquare()
+                dofMG = myfitMG.GetNDF()
+                if (chiMG/dofMG)>5:
+                    fitrg = [i-j,int(not j)]
+                    stop = 1
+            if stop:
+                break
+        myfitMG = ROOT.TF1("myfitMG","pol1",voltage[5-fitrg[0]],voltage[-1*(5-fitrg[0]+fitrg[1])])
         mygrMG.Fit(myfitMG,"QR")
         MGpar0 = myfitMG.GetParameter(0)
         MGpar1 = myfitMG.GetParameter(1)
