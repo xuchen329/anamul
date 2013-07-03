@@ -42,6 +42,8 @@ def GainvsVolt(folderpath):
         fitrg = []
         for i in range(6):
             for j in [1,0]:
+		if (5-i<0) or (-1*(5-i+j)>=0):
+		    fitrg = [0,-1]
                 myfitMG = ROOT.TF1("myfitMG","pol1",voltage[5-i],voltage[-1*(5-i+j)])
                 mygrMG.Fit(myfitMG,"QR0")
                 chiMG = myfitMG.GetChisquare()
