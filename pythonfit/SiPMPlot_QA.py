@@ -107,7 +107,7 @@ def GainvsVolt(folderpath):
         plt.savefig(pp,format='pdf')
         pp.close()
 
-        txtfilename=folderpath+'/'+str(matrixnr)+"_Gain.txt"
+        txtfilename=folderpath+'/../'+str(matrixnr)+"_Gain.txt"
         with open(txtfilename,"a") as f:
             f.write(channel)
             f.write("\t")
