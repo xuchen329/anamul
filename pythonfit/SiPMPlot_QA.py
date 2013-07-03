@@ -7,6 +7,7 @@ import scipy.optimize as scop
 import scipy.stats as scist
 import os,sys
 import ROOT
+from matplotlib.backends.backend_pdf import PdfPages
 
 golden_mean = (math.sqrt(5)-1.0)/2.0
 fig_width = 8 # width in inches
@@ -20,7 +21,7 @@ rc('text',usetex=True)
 def linearfunc(x,cnt,slp):
     return cnt+slp*x
 
-def GainvsVolt(folderpath):
+def GainvsVolt(folderpath,matrixnr,channel):
     filename = folderpath+'/spes.log'
     if os.path.isfile(filename):
         voltage,temperature,GainMG,errGainMG,GainFFT,GainFFTerr = np.genfromtxt(filename,usecols=(0,1,4,6,7,8),unpack=True)
@@ -84,18 +85,52 @@ def GainvsVolt(folderpath):
         plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')
 
 #global cosmetic setting
+        dirstring="/space/Milan/Dropbox/Doktorarbeit/MPPC_S12643_plots/"
+        pdfstring = dirstring+matrixnr+"_"+channel+"_Gain.pdf"
+        pp = PdfPages(pdfstring)
+
         plt.grid(True)
         plt.xlabel('Bias Voltage [V]',fontsize=16)
         plt.ylabel('Gain [adu.]',fontsize=16)
-        
+        plt.ylim([0,500])
         plt.annotate("MGF\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(vbdMG,errvbdMG,normgMG/1000.,np.mean(temperature),chiMG,dofMG,errnormgMG/1000.),xy=(0.45,0.7),xycoords='axes fraction',fontsize=14)
         plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.7),xycoords='axes fraction',fontsize=14)
-         
+        
         plt.xlim(np.min(voltage)-0.1,np.max(voltage)+0.1)
-    plt.legend(loc=4,numpoints=1)
-    plt.show()
+        plt.legend(loc=4,numpoints=1)
+        #    plt.show()
+        
+        plt.savefig(pp,format='pdf')
+        pp.close()
+
+        txtfilename=dirstring+matrixnr+"_Gain.txt"
+        with open(txtfilename,"a") as f:
+            f.write(channel)
+            f.write(" ")
+            f.write(str(vbdMG))
+            f.write(" ")
+            f.write(str(errvbdMG))
+            f.write(" ")
+            f.write(str(FFT_vbd))
+            f.write(" ")
+            f.write(str(FFT_errvbd))
+            f.write(" ")
+            f.write(str(normgMG/1000.))
+            f.write(" ")
+            f.write(str(errnormgMG/1000.))
+            f.write(" ")
+            f.write(str(FFT_normg/1000.))
+            f.write(" ")
+            f.write(str(FFT_errnormg/1000.))
+            f.write("\n")
+            
+        print vbdMG, errvbdMG, FFT_vbd,FFT_errvbd, normgMG/1000., errnormgMG/1000., FFT_normg/1000., FFT_errnormg/1000. 
+            
 
 if __name__=='__main__':
     folderpath = sys.argv[1]
+    matrixnr = sys.argv[2]
+    channel = sys.argv[3]
     
-    GainvsVolt(folderpath)
+    GainvsVolt(folderpath,matrixnr,channel)
+    
