@@ -21,8 +21,12 @@ rc('text',usetex=True)
 def linearfunc(x,cnt,slp):
     return cnt+slp*x
 
-def GainvsVolt(folderpath,matrixnr,channel):
+def GainvsVolt(folderpath):
+    folderpath = folderpath.rstrip('/')
     filename = folderpath+'/spes.log'
+    chfoldername = folderpath[folderpath.rfind('/')+1:]
+    matrixnr = int(chfoldername.split('-')[1][1:])
+    channel = chfoldername.split('-')[2]
     if os.path.isfile(filename):
         voltage,temperature,GainMG,errGainMG,GainFFT,GainFFTerr = np.genfromtxt(filename,usecols=(0,1,4,6,7,8),unpack=True)
         if voltage[0]<0.:
@@ -33,13 +37,13 @@ def GainvsVolt(folderpath,matrixnr,channel):
         mygrMG = ROOT.TGraphErrors(len(voltage[GainMG.nonzero()]),voltage[GainMG.nonzero()].flatten(),GainMG[GainMG.nonzero()].flatten(),voltageerr[GainMG.nonzero()].flatten(),errGainMG[GainMG.nonzero()].flatten())
         c1 = ROOT.TCanvas("MG_fit","MG_Fit")
         c1.cd()
-        mygrMG.Draw("AP")
+        #mygrMG.Draw("AP")
         stop = 0;
         fitrg = []
         for i in range(6):
             for j in [1,0]:
                 myfitMG = ROOT.TF1("myfitMG","pol1",voltage[5-i],voltage[-1*(5-i+j)])
-                mygrMG.Fit(myfitMG,"QR")
+                mygrMG.Fit(myfitMG,"QR0")
                 chiMG = myfitMG.GetChisquare()
                 dofMG = myfitMG.GetNDF()
                 if (chiMG/dofMG)>5:
@@ -48,7 +52,7 @@ def GainvsVolt(folderpath,matrixnr,channel):
             if stop:
                 break
         myfitMG = ROOT.TF1("myfitMG","pol1",voltage[5-fitrg[0]],voltage[-1*(5-fitrg[0]+fitrg[1])])
-        mygrMG.Fit(myfitMG,"QR")
+        mygrMG.Fit(myfitMG,"QR0")
         MGpar0 = myfitMG.GetParameter(0)
         MGpar1 = myfitMG.GetParameter(1)
         MGerr0 = myfitMG.GetParError(0)
@@ -67,10 +71,10 @@ def GainvsVolt(folderpath,matrixnr,channel):
         mygrFFT = ROOT.TGraph(len(voltage),voltage.flatten(),GainFFT.flatten())
         c2 = ROOT.TCanvas("FFT_fit","FFT_Fit")
         c2.cd()
-        mygrFFT.Draw("AP")
+        #mygrFFT.Draw("AP")
         myfitFFT = ROOT.TF1("myfitFFT","pol1",np.min(voltage),np.max(voltage))
         #myfitFFT = ROOT.TF1("myfitFFT16","pol1",71.3,71.8)
-        mygrFFT.Fit(myfitFFT,"QR")
+        mygrFFT.Fit(myfitFFT,"QR0")
         FFTpar0 = myfitFFT.GetParameter(0)
         FFTpar1 = myfitFFT.GetParameter(1)
         FFTerr0 = myfitFFT.GetParError(0)
@@ -85,8 +89,8 @@ def GainvsVolt(folderpath,matrixnr,channel):
         plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')
 
 #global cosmetic setting
-        dirstring="/space/Milan/Dropbox/Doktorarbeit/MPPC_S12643_plots/"
-        pdfstring = dirstring+matrixnr+"_"+channel+"_Gain.pdf"
+       # dirstring="/space/Milan/Dropbox/Doktorarbeit/MPPC_S12643_plots/"
+        pdfstring = folderpath+'/'+str(matrixnr)+"_"+channel+"_Gain.pdf"
         pp = PdfPages(pdfstring)
 
         plt.grid(True)
@@ -103,24 +107,24 @@ def GainvsVolt(folderpath,matrixnr,channel):
         plt.savefig(pp,format='pdf')
         pp.close()
 
-        txtfilename=dirstring+matrixnr+"_Gain.txt"
+        txtfilename=folderpath+'/'+str(matrixnr)+"_Gain.txt"
         with open(txtfilename,"a") as f:
             f.write(channel)
-            f.write(" ")
+            f.write("\t")
             f.write(str(vbdMG))
-            f.write(" ")
+            f.write("\t")
             f.write(str(errvbdMG))
-            f.write(" ")
+            f.write("\t")
             f.write(str(FFT_vbd))
-            f.write(" ")
+            f.write("\t")
             f.write(str(FFT_errvbd))
-            f.write(" ")
+            f.write("\t")
             f.write(str(normgMG/1000.))
-            f.write(" ")
+            f.write("\t")
             f.write(str(errnormgMG/1000.))
-            f.write(" ")
+            f.write("\t")
             f.write(str(FFT_normg/1000.))
-            f.write(" ")
+            f.write("\t")
             f.write(str(FFT_errnormg/1000.))
             f.write("\n")
             
@@ -129,8 +133,6 @@ def GainvsVolt(folderpath,matrixnr,channel):
 
 if __name__=='__main__':
     folderpath = sys.argv[1]
-    matrixnr = sys.argv[2]
-    channel = sys.argv[3]
     
-    GainvsVolt(folderpath,matrixnr,channel)
+    GainvsVolt(folderpath)
     

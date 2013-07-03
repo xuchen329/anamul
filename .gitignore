@@ -15,5 +15,9 @@
 # Temp files
 *~
 
+# output images
+*.pdf
+*.png
+
 # Local data
 data/
