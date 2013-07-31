@@ -120,9 +120,9 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
 	DaqMul *spes2 = new DaqMul(tree2);
 	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,-0.5,4095.5);
 	spes2->GetHistogram(histdcr);
-	DCRret = GetDCRHighNoise(histdcr,mean[0],(mean[1]-mean[0]),dcreffgate); //magic number effective gate
+	DCRret = GetDCR(histdcr,mean[0],LFgain,dcreffgate); //magic number effective gate
 	cout<<"DCR : "<<DCRret[0]<<" +/- "<<DCRret[1]<<endl;
-//	cout<<"XT  : "<<DCRret[2]<<" +/- "<<DCRret[3]<<endl;
+	cout<<"XT  : "<<DCRret[2]<<" +/- "<<DCRret[3]<<endl;
 	TCanvas *candcr = new TCanvas("DCR","DCR",800,600);
 	histdcr->Draw();
     }

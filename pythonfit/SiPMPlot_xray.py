@@ -56,22 +56,24 @@ def GainvsVolt(folderpath):
         FFTerr1 = myfitFFT.GetParError(1)
         FFTchi = myfitFFT.GetChisquare()
         FFTdof = myfitFFT.GetNDF()
-        plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,fmt='r.')
+        #plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,fmt='r.')
         FFT_vbd = -1.*FFTpar0/FFTpar1
         FFT_errvbd = np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
         FFT_normg = FFTpar1*25e-15/50./1.6e-19
         FFT_errnormg = FFTerr1*25e-15/50./1.6e-19
-        plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')
+        # plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')
 
 #global cosmetic setting
         plt.grid(True)
         plt.xlabel('Bias Voltage [V]',fontsize=16)
         plt.ylabel('Gain [adu.]',fontsize=16)
         
-        plt.annotate("MGF\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(vbdMG,errvbdMG,normgMG/1000.,np.mean(temperature),chiMG,dofMG,normgMG*0.0019/1000.),xy=(0.4,0.75),xycoords='axes fraction',fontsize=14)
-        plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.75),xycoords='axes fraction',fontsize=14)
+        #plt.annotate("MGF\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(vbdMG,errvbdMG,normgMG/1000.,np.mean(temperature),chiMG,dofMG,normgMG*0.0019/1000.),xy=(0.4,0.75),xycoords='axes fraction',fontsize=14)
+        plt.annotate("$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {3:.1f} k$e_0$/V\nTemp: {4:.1f} $^\circ$C".format(vbdMG,errvbdMG,normgMG/1000.,normgMG*0.0019/1000.,np.mean(temperature)),xy=(0.4,0.75),xycoords='axes fraction',fontsize=14)
+        #plt.annotate("FFT\n$U_{bd}$ : "+"{0:.2f} $\pm$ {1:.2f} V\nGain: {2:.1f} $\pm$ {6:.1f} k$e_0$/V\nTemp: {3:.1f}$^\circ$C\n$\chi^2$/DOF : {4:.1f}/{5}".format(FFT_vbd,FFT_errvbd,FFT_normg/1000.,np.mean(temperature),FFTchi,FFTdof,FFT_errnormg/1000.),xy=(0.05,0.75),xycoords='axes fraction',fontsize=14)
          
-        plt.xlim(np.min(voltage)-0.1,np.max(voltage)+0.1)
+        #        plt.xlim(np.min(voltage)-0.1,np.max(voltage)+0.1)
+        plt.xlim(70.0,71.8)
     plt.show()
 
 if __name__=='__main__':
