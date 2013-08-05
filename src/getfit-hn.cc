@@ -38,9 +38,9 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log, Int_t pedes){
     Float_t *errmean = new Float_t[20];
     Float_t *errsigma = new Float_t[20];
     
-    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,0.5,4096.5);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
 //HIGH NOISE VERSION, cut histogram from 50
-    spes->GetHistogram(hist,55);  
+    spes->GetHistogram(hist,50);  
     Float_t *cond = new Float_t[3];
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
@@ -156,7 +156,7 @@ Int_t GetPedestal(TString dirname){
     }
     TTree *tree = (TTree*)fin->Get("data");
     DaqMul *spes = new DaqMul(tree);
-    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,0.5,4096.5);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
 //HIGH NOISE VERSION, cut histogram from 10
     spes->GetHistogram(hist,10);
     Int_t pedes = hist->GetBinCenter(hist->GetMaximumBin());

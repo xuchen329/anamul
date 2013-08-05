@@ -19,7 +19,7 @@ using namespace std;
 //!!! magic number in GetDCR, effective gate
 const Float_t dcreffgate = 100e-9;
 
-Int_t fitandlog(TString dir, TString fname,Bool_t log){ 
+Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){ 
     TString filefullname = dir+fname;
     TFile *fin = new TFile(filefullname,"read");
     if(fin->IsZombie()) {
@@ -40,7 +40,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
 //Multi gaussian fit
-    const int cnt = FitGainLog(hist,5,mean,sigma,errmean,errsigma);
+    const int cnt = FitGainLog(hist,7,mean,sigma,errmean,errsigma,pedes);
     Bool_t mgfitfail = 0;
     Float_t LFgain,errLFgain,el_noise,pix_noise;
     if(cnt>1){ 
@@ -78,7 +78,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
 
 //FFT fit
     Float_t *GainFFT = NULL;
-    GainFFT = GainFromFFT(hist);
+    GainFFT = GainFromFFTShifted(hist,pedes);
     cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;
 
 //DCR
@@ -140,6 +140,26 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log){
     return 0;
 }
 
+Int_t GetPedestal(TString dirname){
+    TString filefullname = dirname;
+    filefullname+="pedestal.root";
+    TFile* fin = new TFile(filefullname,"read");
+    if(fin->IsZombie()) {
+	fin->Close();
+	return 0.;
+    }
+    TTree *tree = (TTree*)fin->Get("data");
+    DaqMul *spes = new DaqMul(tree);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
+    spes->GetHistogram(hist);
+    Int_t pedes = hist->GetBinCenter(hist->GetMaximumBin());
+    cout<<"Pedestal Estimation: "<<pedes<<endl;
+    delete hist;
+    delete spes;
+    return pedes;
+}
+
+
 Int_t main(int argc, char** argv){
     if(argc<3){
 	cout<<"usage: ./getfit <dir> <nfile>"<<endl;
@@ -156,11 +176,14 @@ Int_t main(int argc, char** argv){
     logfilename+="spes.log";
     std::ofstream fout(logfilename,std::ofstream::out);
     fout.close();
+
+    //find pedestal
+    Int_t pedes = GetPedestal(dirname);
     
     for(int i=0;i<nfile;i++){
 	TString name = "spes-";
 	name+=i;
 	name+=".root";
-	Int_t ret = fitandlog(dirname,name,1);
+	Int_t ret = fitandlog(dirname,name,1,pedes);
     }
 }

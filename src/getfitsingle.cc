@@ -102,8 +102,11 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
     cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;
 
     Float_t *GainFFTnoPed = NULL;
-    GainFFTnoPed = GainFromFFTNoPed(hist,kped,kgn);  //FFT fit after remove 0pe peak
-    cout<<"Gain from FFT no ped: "<<GainFFTnoPed[0]<<" +/- "<<GainFFTnoPed[1]<<endl;
+    Float_t fftshiftped = 0.;
+    if(cnt>1) fftshiftped = mean[0];
+    else fftshiftped = hist->GetBinCenter(hist->GetMaximumBin());
+    GainFFTnoPed = GainFromFFTShifted(hist,fftshiftped);  ///FFT fit after shift 0pe to 0
+    cout<<"Gain from FFT Shifted: "<<GainFFTnoPed[0]<<" +/- "<<GainFFTnoPed[1]<<endl;
 
 //DCR
     //remove .root from name
@@ -118,7 +121,7 @@ Int_t getfit(TString dir, TString fname,Int_t npk=5, Float_t kped=-1, Float_t kg
 	DaqMul *spes2 = new DaqMul(tree2);
 	TH1I* histdcr = new TH1I("spes-dcr","dcr spes in qdc channel",4096,-0.5,4095.5);
 	spes2->GetHistogram(histdcr);
-	DCRret = GetDCR(histdcr,mean[0],(mean[1]-mean[0]),dcreffgate); //magic number effective gate
+	DCRret = GetDCR(histdcr,mean[0],LFgain,dcreffgate); //magic number effective gate
 	cout<<"DCR : "<<DCRret[0]<<" +/- "<<DCRret[1]<<endl;
 	cout<<"XT  : "<<DCRret[2]<<" +/- "<<DCRret[3]<<endl;
 	TCanvas *candcr = new TCanvas("DCR","DCR",800,600);
