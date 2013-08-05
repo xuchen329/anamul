@@ -63,7 +63,7 @@ OBJS 	:= $(subst .$(SrcSuf),.$(ObjSuf),$(SRC))
 PROGS	:= $(subst .$(SrcSuf),,$(SRC))
 PROGS	:= $(subst $(SrcDir),$(BinDir),$(PROGS))
 
-.PHONY: all clean install lib
+.PHONY: exedirectory all clean install lib
 
 .SUFFIXES: .o .C
 
@@ -78,7 +78,8 @@ install: $(MYLIB)
 	cp $(MYLIB) /usr/lib
 
 ##COMMENTED OUT BECAUSE IT USES THE IMPLICIT RULE FOR SINGLE OBJECT FILES
-$(BinDir)%: $(SrcDir)%.o $(CLASSES_O)# $(CLASSES_DO) 
+$(BinDir)%: $(SrcDir)%.o $(CLASSES_O)# $(CLASSES_DO)
+	@mkdir -p $(BinDir) 
 	$(LD) $(CXXFLAGS) $^ $(LDFLAGS) $(OutPutOpt) $@
 
 clean:
