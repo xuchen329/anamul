@@ -18,3 +18,8 @@ Float_t* GetDCRHighNoise(TH1I* hist, Float_t pedestal, Float_t gain,Float_t effg
 Int_t    FitGainWithKnowledge(TH1I* hist,Int_t npks, Float_t *mean, Float_t *sigma, Float_t kped, Float_t kgn,Float_t *errmean=0,Float_t *errsigma=0);
 Float_t* GainFromFFTNoPed(TH1I* hist,Float_t kped, Float_t kgain);
 void FindValey(TH1F* hist, Int_t cnt, Float_t *px, Int_t* idx, Float_t *left, Float_t *right);
+
+Float_t FindLocalMaximumPos(TH1* hist, Int_t startbin=0, Int_t endbin=0);
+
+Float_t GainFromAutoCor(TH1I* hist);
+Float_t FindHarmonyPeak(TH1F* hist);

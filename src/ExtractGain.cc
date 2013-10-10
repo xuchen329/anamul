@@ -1,6 +1,7 @@
 #include <iostream>
 #include <TStyle.h>
 #include <TRint.h>
+#include <TGraph.h>
 #include <cmath>
 #include "ExtractGain.h"
 
@@ -273,6 +274,86 @@ Float_t* GainFromFFT(TH1I* hist){
     return retv;
 }
 
+
+/*
+Be carefull, do not manipulate the range of hist with hist->GetXaxis()->SetRangeUser()
+before passing it to this function, it will cause strange result
+*/
+Float_t GainFromAutoCor(TH1I* hist){
+    TH1I* histext = NULL;
+    Int_t oplen = 4*4096-1;
+    histext = new TH1I("hist_for_auto","hist for autocorrelation",oplen,0.5,oplen+0.5);
+    for(int i=1;i<=4096;i++){
+	histext->SetBinContent(i,hist->GetBinContent(i));
+    }
+    histext->SetBinContent(1,0); //just in case there is underflow
+
+//do fft,get re and im part, times its conjugate
+    TH1 *hRE =0;
+    TVirtualFFT::SetTransform(0);
+    hRE = histext->FFT(hRE, "MAG");
+    TH1 *hIM =0;
+    hIM = histext->FFT(hIM, "IM");
+    Double_t *re_full = new Double_t[oplen];
+    Double_t *im_full = new Double_t[oplen];
+    for(int i=1;i<=oplen;i++){
+	re_full[i-1] = hRE->GetBinContent(i);
+	im_full[i-1] = hIM->GetBinContent(i);
+    }
+    for(int i=0;i<oplen;i++){
+	re_full[i] = re_full[i]*re_full[i]+im_full[i]*im_full[i];
+	im_full[i] = 0;
+    }
+
+//ifft transform:
+    TVirtualFFT *fft_back = TVirtualFFT::FFT(1, &oplen, "C2R M K");
+    fft_back->SetPointsComplex(re_full,im_full);
+    fft_back->Transform();
+    TH1 *hb = 0;
+    hb = TH1::TransformHisto(fft_back,hb,"Re");
+
+//only keep the fruitful part
+    TH1F *hist_auto = new TH1F("hist_auto","The auto-correlation hist",4096,0,4096);
+    for(int i=1;i<=4096;i++){
+	hist_auto->SetBinContent(i,(hb->GetBinContent(i)/oplen));
+    }
+    TCanvas* AutohistCanvas = NewCanvas("auto-correlation",800,600);
+    hist_auto->Draw();
+
+//find out the position of first harmony, it is the gain.
+//if the original hist was set to a range, this number is screwed up
+    Float_t retv = FindHarmonyPeak(hist_auto);
+    delete[] re_full;
+    delete[] im_full;
+    delete hRE;
+    delete hIM;
+    delete histext;
+    return retv;
+}
+
+Float_t FindHarmonyPeak(TH1F* hist){
+    Int_t firstmin = 0;
+    for(int i=1;i<=4096;i++){
+	if( hist->GetBinContent(i+3)>hist->GetBinContent(i) &&
+	    hist->GetBinContent(i+2)>hist->GetBinContent(i) &&
+	    hist->GetBinContent(i+1)>hist->GetBinContent(i)){
+	    firstmin = i;
+	    break;
+	}
+    }
+    Float_t ineedthisbecauseitisnotinpython = 0;
+    Int_t gain = 0;
+    for(int i=firstmin;i<=4096;i++){
+	Float_t tmp = hist->GetBinContent(i);
+	if(tmp>ineedthisbecauseitisnotinpython){
+	    ineedthisbecauseitisnotinpython = tmp;
+	    gain = i;
+	}
+    }
+    return gain;
+}
+	    
+
 Float_t* GainFromFFTShifted(TH1I* hist, Float_t ped){
     Float_t tmpmax = 0;
     Int_t pedbin = hist->FindBin(ped);
@@ -315,33 +396,6 @@ Float_t* GainFromFFTShifted(TH1I* hist, Float_t ped){
     return retv;
 }
 
-Float_t* GainFromFFTNoPed(TH1I* hist,Float_t kped, Float_t kgain){
-    TH1I* histnew = new TH1I("hist-no-ped","spes no ped",4096,-0.5,4095.5);
-    Int_t binstart = floor(kped+0.5*kgain);
-    for(int i=binstart;i<4096;i++){
-	histnew->SetBinContent(i,hist->GetBinContent(i));
-    }
-    TH1* hm=NULL;
-    TVirtualFFT::SetTransform(0);
-    hm = histnew->FFT(hm,"MAG");
-    TString str = histnew->GetName();
-    str+="_fft_noped";
-    TCanvas* FFTtmpCanvas = NewCanvas(str,800,600);
-    hm->Draw();
-    Int_t *fitresult = new Int_t[2];
-    FindPeak(hm,fitresult);
-    Float_t norm = (fitresult[0]*histnew->GetBinWidth(1));
-    Float_t normerr = (fitresult[0]+fitresult[1])*histnew->GetBinWidth(1);
-    Float_t gain = histnew->GetNbinsX()/norm;
-    Float_t errgain = histnew->GetNbinsX()/normerr;
-    Float_t err = TMath::Abs(errgain-gain);
-    delete fitresult;
-    Float_t *retv = new Float_t[2];
-    retv[0] = gain;
-    retv[1] = err; 
-    //delete FFTtmpCanvas;
-    return retv;
-}
 
 void FindPeak(TH1* hist,Int_t *res){
   int startbin = 3;
@@ -372,10 +426,14 @@ void FindPeak(TH1* hist,Int_t *res){
 }
 
 Float_t* GetDCR(TH1I* hist,Float_t pedestal,Float_t gain,Float_t effgate){
+    //center of 0 pe peak
     Float_t pedestalcenter = pedestal;
-    if(pedestal<0){
-	Float_t fitcenter = hist->GetBinCenter(hist->GetMaximumBin());
-	TF1* pedfit = new TF1("pedfit","gaus",0.8*fitcenter,1.2*fitcenter);
+    if(1){//center is not specified
+
+	/*assuming 0pe peak is the highest, can raise problem
+	  if there is a strange overshoot therefore a lot of under flow */
+	Float_t fitcenter = FindLocalMaximumPos(hist,50);
+	TF1* pedfit = new TF1("pedfit","gaus",fitcenter-8,fitcenter+8);
 	hist->Fit(pedfit,"QR");
 	fitcenter = pedfit->GetParameter(1);
 	Float_t fitsigma = pedfit->GetParameter(2);
@@ -384,23 +442,46 @@ Float_t* GetDCR(TH1I* hist,Float_t pedestal,Float_t gain,Float_t effgate){
 	hist->Fit(pedfit,"QR");
 	pedestalcenter = pedfit->GetParameter(1);
     }
+    TF1* onepefit = new TF1("pedfit","gaus",pedestalcenter+gain-20.,pedestalcenter+gain+20.);
+    hist->Fit(onepefit,"QR+");
+    Float_t fitmean = onepefit->GetParameter(1);
+    Float_t fitsigma = onepefit->GetParameter(2);
+
+    
     Int_t nbinsx = hist->GetNbinsX();
     Double_t AllNevents = hist->Integral(0,nbinsx);
     Double_t DcrNevents = hist->Integral(pedestalcenter+0.5*gain,nbinsx);
+    Int_t thrbinnumber = int(pedestalcenter+0.5*gain);
+    Double_t DcrErrNevents = (hist->GetBinContent(thrbinnumber-1)+hist->GetBinContent(thrbinnumber+1))*0.5;
     Double_t XtNevents = hist->Integral(pedestalcenter+1.5*gain,nbinsx);
+    Int_t thr15binnumber = int(pedestalcenter+1.5*gain);
+    Double_t XtErrNevents = hist->GetBinContent(thr15binnumber-1)+hist->GetBinContent(thr15binnumber+1);
+
+    cout<<"All Events: "<<AllNevents<<" DCR events: "<<DcrNevents<<endl;
+    Double_t IntegralNpixelFired = 0;
+    Int_t startbin = int(pedestalcenter+0.5*gain);
+    for(int i = startbin;i<=nbinsx;i++){
+	IntegralNpixelFired += ((hist->GetBinCenter(i)-pedestalcenter)/gain)*hist->GetBinContent(i);
+    }
+    Double_t MissedEvents = onepefit->Integral(fitmean-3.*fitsigma,pedestalcenter+0.5*gain)/(pedestalcenter+0.5*gain-fitmean-3.*fitsigma);
     //cout<<"All Events: "<<AllNevents<<" DcrNevents: "<<DcrNevents<<endl;
     Double_t prop = DcrNevents/AllNevents;
-    Double_t errprop = TMath::Sqrt(DcrNevents)/AllNevents;
+    Double_t errprop = TMath::Sqrt(DcrNevents+TMath::Power(DcrErrNevents,2))/AllNevents;
+    //Double_t errprop = (DcrNevents+TMath::Sqrt(DcrNevents)+DcrErrNevents)/AllNevents;
     Double_t dcr = (1./effgate)*TMath::Log(1./(1.-prop));
     Double_t errdcr = (1./effgate)*TMath::Log(1./(1.-(prop+errprop)))-dcr;
     Double_t xtprop = XtNevents/DcrNevents;
-    Double_t errxt = TMath::Sqrt((1/XtNevents+1/DcrNevents)*(xtprop*xtprop));
+    Double_t errxt = TMath::Sqrt(TMath::Power(TMath::Sqrt(XtNevents+XtErrNevents*XtErrNevents)/XtNevents,2)+TMath::Power(TMath::Sqrt(DcrNevents+DcrErrNevents*DcrErrNevents)/DcrNevents,2))*xtprop;
     cout<<"DCR: "<<dcr<<" +/-: "<<errdcr<<endl;
-    Float_t *ret = new Float_t[4];
+    Float_t *ret = new Float_t[6];
     ret[0] = dcr;
     ret[1] = errdcr;
     ret[2] = xtprop;
     ret[3] = errxt;
+    Double_t  APprop = (IntegralNpixelFired/(AllNevents*effgate*dcr*(1+xtprop)))-1.;
+    ret[4] = APprop;
+    Double_t APprop2 = IntegralNpixelFired/(DcrNevents+XtNevents)-1.;
+    ret[5] = APprop2;
     return ret;
 }
 
@@ -548,3 +629,18 @@ void FindValey(TH1F* histor, Int_t cnt, Float_t *px, Int_t* idx, Float_t *left, 
     //rint.Run(kTRUE);
 }
 	
+Float_t FindLocalMaximumPos(TH1* hist, Int_t startbin, Int_t endbin){
+    if(!(endbin>startbin)){
+	endbin = hist->GetNbinsX();
+    }
+    Float_t binpos = startbin;
+    Float_t maximum = 0;
+    for(int i=startbin;i<endbin;i++){
+	Float_t bincontent = hist->GetBinContent(i);
+	if(bincontent>maximum){
+	    maximum = bincontent;
+	    binpos = i;
+	}
+    }
+    return hist->GetBinCenter(binpos);
+}

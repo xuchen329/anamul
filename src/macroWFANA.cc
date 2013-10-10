@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <TROOT.h>
+#include <TH1F.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <TF1.h>
 #include <TRint.h>
 #include <TMultiGraph.h>
 #include <TGraph.h>
@@ -74,80 +76,111 @@ int main(int argc,char** argv){
     }
     
     TCanvas* can  = new TCanvas("fr","fr",800,600);
+    TH1F* hist = new TH1F("test","test",100,-0.005,0.005);
     TMultiGraph *mulg = new TMultiGraph();
     TGraph* gr = NULL;
+    Float_t *tpV = new Float_t[10000];
+    Float_t *tpT = new Float_t[10000];
     for(Long64_t ientry = 0;ientry<nentries;ientry++){
 	tree->GetEntry(ientry);
 	if(channel==1) continue;
 	Int_t skipflg = 0;
+	Int_t cross = 0;
+	Double_t sum = 0;
 	for(Int_t pt=0;pt<nsamples;pt++){
-	    if (V[pt]>0) V[pt] = 0;
-	    else V[pt] = -1.*V[pt];
+	    // if (V[pt]>0) V[pt] = 0;
+	    V[pt] = -1*V[pt];
 	    t[pt] = t[pt]*1e9;
-	    //selections
-	    /* if(t[pt]>25.8 && t[pt]<26.2){
-		if(V[pt]>0.028 || V[pt]<0.016){
+	    //selections DCR
+	    if(t[pt]>23.1 && t[pt]<23.2){
+		if(V[pt]<0.005){
 		    skipflg=1;
 		    break;
 		}
 	    }
-	    if(t[pt]>39.8 && t[pt]<40.2){
-		if(V[pt]>0.012 || V[pt]<0.0035){
+	    if(t[pt]>24.2 && t[pt]<24.3){
+		if(V[pt]>0.035){
 		    skipflg=1;
 		    break;
 		}
 	    }
-	    if(t[pt]>60. && t[pt]<100.){
-		if(V[pt]>0.005){
-		    skipflg=1;
-		    break;
-		}
-	    }*/
-	    
-	    if(t[pt]<48){
-		if(V[pt]>0.003){
-		    skipflg=1;
-		    break;
-		}
-	    }
-	   
-	    /*
-	    if(t[pt]>52 && t[pt]<54){
-		if(V[pt]>0.0255 || V[pt]<0.009) {
-		    skipflg=1;
-		    break;
-		}
-	    }
-	    if(t[pt]>69 && t[pt]<71){
-		if(V[pt]>0.008) {
-		    skipflg=1;
-		    break;
-		}
-	    }
-	    if(t[pt]>80 && t[pt]<120){
-		if(V[pt]>0.0056) {
-		    skipflg=1;
-		    break;
-		}
-		}*/
 	}
 	if(skipflg) continue;
+	else{
+	    //sum=sum*(t[1]-t[0]);
+	    hist->Fill(sum/nsamples);
+	}
+//	if(Ascfname!="no"){
+//	    for(Int_t ipt=0;ipt<nsamples;ipt++){
+//		fout<<V[ipt]<<"\t";
+//	    }
+//	    fout<<"\n";
+//	}
+	//gr = new TGraph(nsamples,t,V);
+	//gr->SetLineColor(45+idx);
+	//mulg->Add((TGraph*)gr->Clone(Form("wf_%d",idx)));
+//	if(idx==1) break;
+    }
+    /*
+    idx==0;
+    for(Long64_t ientry = 0;ientry<nentries;ientry++){
+	tree->GetEntry(ientry);
+	if(channel==1) continue;
+	Int_t skipflg = 0;
+	Int_t cross = 0;
+	for(Int_t pt=0;pt<nsamples;pt++){
+	    // if (V[pt]>0) V[pt] = 0;
+	    V[pt] = -1.*V[pt];
+	    t[pt] = t[pt]*1e9;
+	    //selections DCR
+	    
+	    if(t[pt]>23.1 && t[pt]<23.2){
+		if(V[pt]<0.005){
+		    skipflg=1;
+		    break;
+		}
+	    }
+	    if(t[pt]>24.2 && t[pt]<24.3){
+		if(V[pt]>0.035){
+		    skipflg=1;
+		    break;
+		}
+	    }
+	}
+	if(skipflg) continue;
+	for(Int_t pt=0;pt<nsamples;pt++){
+	    V[pt] = V[pt]-tpV[pt];
+	    if(t[pt]>23 && t[pt]<28){
+		if(V[pt]>0.015){
+		    skipflg=1;
+		    break;
+		}
+	    }
+	}
+	if(skipflg) continue;
+	idx++;
 	if(Ascfname!="no"){
 	    for(Int_t ipt=0;ipt<nsamples;ipt++){
 		fout<<V[ipt]<<"\t";
 	    }
 	    fout<<"\n";
-	}		
+	}
 	gr = new TGraph(nsamples,t,V);
-	gr->SetLineColor(50+idx);
+	gr->SetLineColor(kRed);
 	mulg->Add((TGraph*)gr->Clone(Form("wf_%d",idx)));
-	idx++;
-	if(idx==25) break;
-    }
+	//if(idx==55) break;
+	}*/
     fout.close();
-    mulg->Draw("al");
-    mulg->GetYaxis()->SetRangeUser(1e-5,1e-1);
-    can->SetLogy(1);
+    cout<<idx<<endl;
+//   mulg->Draw("al");
+    hist->Draw();
+    Float_t fitcenter = hist->GetBinCenter(hist->GetMaximumBin());
+    Float_t binwidth = hist->GetBinWidth(1);
+    TF1* func= new TF1("fit","gaus",fitcenter-10*binwidth,fitcenter+4*binwidth);
+    hist->Fit(func,"IRQ");
+    cout<<func->Integral(-0.005,0.005)/binwidth<<endl;
+//    mulg->GetYaxis()->SetRangeUser(1e-5,1e-1);
+    //can->SetLogy(1);
     rint.Run(kTRUE);
     return 0;
 }

@@ -48,8 +48,9 @@ def GainvsVolt(folderpath):
         c2.cd()
         mygrFFT.Draw("AP")
         myfitFFT = ROOT.TF1("myfitFFT16","pol1",np.min(voltage),np.max(voltage))
+        print str(np.min(voltage))+str(np.max(voltage))
         #myfitFFT = ROOT.TF1("myfitFFT16","pol1",71.3,71.8)
-        mygrFFT.Fit("myfitFFT16","QR")
+        mygrFFT.Fit(myfitFFT,"QR")
         FFTpar0 = myfitFFT.GetParameter(0)
         FFTpar1 = myfitFFT.GetParameter(1)
         FFTerr0 = myfitFFT.GetParError(0)
@@ -57,10 +58,10 @@ def GainvsVolt(folderpath):
         FFTchi = myfitFFT.GetChisquare()
         FFTdof = myfitFFT.GetNDF()
         plt.errorbar(voltage,GainFFT,xerr=voltageerr,yerr=GainFFTerr,fmt='r.')
-        FFT_vbd = -1.*FFTpar0/FFTpar1
-        FFT_errvbd = np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
-        FFT_normg = FFTpar1*25e-15/50./1.6e-19
-        FFT_errnormg = FFTerr1*25e-15/50./1.6e-19
+        FFT_vbd = -1.#*FFTpar0/FFTpar1
+        FFT_errvbd = 1.#np.sqrt(((FFTerr0**2)/(FFTpar0**2)+(FFTerr1**2)/(FFTpar1**2))*(FFT_vbd**2))
+        FFT_normg = 1.#FFTpar1*25e-15/50./1.6e-19
+        FFT_errnormg = 1#FFTerr1*25e-15/50./1.6e-19
         plt.plot(voltage,linearfunc(voltage,FFTpar0,FFTpar1),'r--')
 
 #global cosmetic setting

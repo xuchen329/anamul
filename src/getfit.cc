@@ -34,33 +34,39 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){
     Float_t *errmean = new Float_t[20];
     Float_t *errsigma = new Float_t[20];
     
-    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,-0.5,4095.5);
+    TH1I* hist = new TH1I("spes","spes in qdc channel",4096,0.5,4096.5);
     spes->GetHistogram(hist);
     Float_t *cond = new Float_t[3];
     spes->GetCondition(cond);  //Temperature,errTemp,Voltage
 
+//AutoCorrelation fit
+    Float_t GainAuto = 0;
+    GainAuto = GainFromAutoCor(hist);
+    cout<<"Gain From Auto-correlation: "<<GainAuto<<endl;
+
 //Multi gaussian fit
-    const int cnt = FitGainLog(hist,7,mean,sigma,errmean,errsigma,pedes);
+    Int_t cntret = FitGainLog(hist,5,mean,sigma,errmean,errsigma,pedes);
     Bool_t mgfitfail = 0;
     Float_t LFgain,errLFgain,el_noise,pix_noise;
-    if(cnt>1){ 
+    if(cntret<=0){
+	cntret = FitGainWithKnowledge(hist,5,mean,sigma,pedes,GainAuto,errmean,errsigma);
+    }
+    if(cntret>1){ 
 	///
+	const int cnt = cntret;
 	Float_t *pkorder = new Float_t[20];
-	for(int i=0;i<cnt;i++){
-	    pkorder[i] = i;
-	}
-	
+	for(int i=0;i<cnt;i++) pkorder[i] = i;
 	TGraphErrors *gr = new TGraphErrors(cnt,pkorder,mean,0,errmean);
 	TF1* tmpfit = new TF1("tmpfit","pol1",0-0.1,cnt-0.9);
 	gr->Fit(tmpfit,"QR");
-	LFgain = tmpfit->GetParameter(1);
+	LFgain    = tmpfit->GetParameter(1);
 	errLFgain = tmpfit->GetParError(1);
 	cout<<"Gain from MG: "<<LFgain<<" +/- "<<errLFgain<<endl;
 	
-	Float_t *sigmasq = new Float_t[20];
+	Float_t *sigmasq  = new Float_t[20];
 	Float_t *errsigsq = new Float_t[20];
 	for(int i=0;i<cnt;i++){
-	    sigmasq[i] = sigma[i]*sigma[i];
+	    sigmasq[i]  = sigma[i]*sigma[i];
 	    errsigsq[i] = TMath::Sqrt(2)*sigma[i]*errsigma[i];
 	}
 	TGraphErrors *grsigma = new TGraphErrors(cnt,pkorder,sigmasq,0,errsigsq);
@@ -77,12 +83,12 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){
     }
 
 //FFT fit
-    Float_t *GainFFT = NULL;
+    /*Float_t *GainFFT = NULL;
     GainFFT = GainFromFFTShifted(hist,pedes);
-    cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;
+    cout<<"Gain from FFT: "<<GainFFT[0]<<" +/- "<<GainFFT[1]<<endl;*/
 
 //DCR
-    TString dcrfname = filefullname.Remove(filefullname.Sizeof()-6);//remove .root from name
+    TString dcrfname = filefullname.Remove(filefullname.Sizeof()-6);
     dcrfname+="-dcr.root";
     TFile *fin2 = new TFile(dcrfname,"read");
     Float_t *DCRret = NULL;
@@ -95,7 +101,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){
 	delete histdcr;
     }
 
-//record everthing in log file
+//log
     if(log){
 	TString logfilename = dir;
 	logfilename+="spes.log";
@@ -108,7 +114,7 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){
 	fout<<cond[2]<<"\t";  //voltage
 	fout<<setprecision(1)<<std::fixed;
 	fout<<cond[0]<<"\t"; //temperature
-	if(cnt>1){
+	if(cntret>1){
 	    fout<<mean[0]<<"\t"    //pedestal
 		<<el_noise<<"\t";  //noise
 	    fout<<LFgain<<"\t"     //GainMG 
@@ -118,8 +124,8 @@ Int_t fitandlog(TString dir, TString fname,Bool_t log,Int_t pedes){
 	else{ //MG failed
 	    fout<<"0\t0\t0\t0\t0\t";
 	}
-	fout<<GainFFT[0]<<"\t"   //GainFFT
-	    <<GainFFT[1]<<"\t";  //errGainFFT
+	fout<<GainAuto<<"\t"   //GainFFT
+	    <<1<<"\t";  //errGainFFT
 	if(DCRret==NULL){        //noDCR
 	    fout<<setprecision(0)<<std::fixed;
 	    fout<<"0\t0\t";
